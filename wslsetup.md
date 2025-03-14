@@ -101,6 +101,7 @@ wsl --list
 #  wsl install
 wsl --install -d [distribution-name] | ex. wsl --install -d Ubuntu-24.04
 ```
+
 ```bash
 # to install a clean root version of Ubuntu24.04 to make local instances
 # 1. dowload the WSL version you want and then create the insteance from it before you modify it.
@@ -129,3 +130,4 @@ echo -e "[user]\ndefault=$NEW_USER" > /etc/wsl.conf
 # In PowerShell
 wsl --terminate Ubuntu24-Root
 wsl -d Ubuntu24-Root
+```
