@@ -129,3 +129,4 @@ echo -e "[user]\ndefault=$NEW_USER" > /etc/wsl.conf
 # In PowerShell
 wsl --terminate Ubuntu24-Root
 wsl -d Ubuntu24-Root
+```
