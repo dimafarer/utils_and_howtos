@@ -1,14 +1,48 @@
 # WSL Setup
 
-## Set up WSL user
-
-Note: By default, the imported distribution will log you in as root. since you created user when you installed the root wls that user still exists with thier password, (my username was wsluser). You should not use root should use the user you create  
+## wsl admin
 
 ```bash
-su [username]  ex su wsluser
-sudo bash -c 'echo "[user] 
-default=wsluser" > /etc/wsl.conf'
-# Exit WSL and restart the instance
+# wsl list 
+wsl --list --online
+wsl --list
+#  wsl install
+wsl --install -d [distribution-name] | ex. wsl --install -d Ubuntu-24.04
+```
+
+to install a clean root version of Ubuntu24.04 to make local instances
+
+1. dowload the WSL version you want and then create the insteance from it before you modify it.
+2. it will ask you to make a use as part of the instalation proccess.
+3. at this point your commandline are inside the new WSL instance (not your IDE). it will ask you to set up a user and password
+4. close the command line to go back to your system powershell
+5. Create a directory to store the download
+
+```bash
+# make a folder to hold to the distribution. 
+mkdir Ubuntu24-Root
+cd Ubuntu24-Root
+# export a wsl distribution to your local file system
+wsl --export Ubuntu-24.04 "C:\Users\dimfarer\Ubuntu24-Root\ubuntu24-backup.tar.gz"
+# you could use this directly but if you want multiple versions then import the version you just exported to local with a new name and new location
+wsl --import [yourcustomenvname] "C:\Users\dimfarer\[yourcustomenvname]" "C:\Users\dimfarer\Ubuntu24-Root\ubuntu24-backup.tar.gz"
+
+# To verify your installations:
+wsl --list
+# To launch a specific instance use your IDE WSL plugin or:
+wsl -d [yourcustomenvname] # For Python development
+
+# Note: By default, the imported distribution will log you in as root. To set up a default user:
+# From inside the WSL instance
+NEW_USER=yourusername
+useradd -m -G sudo -s /bin/bash "$NEW_USER"
+passwd "$NEW_USER"
+# Still inside WSL
+echo -e "[user]\ndefault=$NEW_USER" > /etc/wsl.conf
+# Exit WSL and restart the instance:
+# In PowerShell
+wsl --terminate Ubuntu24-Root
+wsl -d Ubuntu24-Root  
 ```
 
 ## Install Q For Devlopers
@@ -109,44 +143,4 @@ npm install
 
 ```bash
 npx ampx sandbox
-```
-
-## wsl admin
-
-```bash
-# wsl list 
-wsl --list --online
-wsl --list
-#  wsl install
-wsl --install -d [distribution-name] | ex. wsl --install -d Ubuntu-24.04
-```
-
-```bash
-# to install a clean root version of Ubuntu24.04 to make local instances
-# 1. dowload the WSL version you want and then create the insteance from it before you modify it.
-# 2. it will ask you to make a use as part of the instalation proccess.
-# 3. at this point your commandline are inside the new WSL instance (not your IDE). it will ask you to set up a user and password
-# 4. close the command line to go back to your system powershell
-# 5. Create a directory to store the download
-mkdir Ubuntu24-Root
-cd Ubuntu24-Root
-wsl --export Ubuntu-24.04 "C:\Users\dimfarer\Ubuntu24-Root\ubuntu24-backup.tar.gz"
-wsl --import [yourcustomenvname] "C:\Users\dimfarer\[yourcustomenvname]" "C:\Users\dimfarer\Ubuntu24-Root\ubuntu24-backup.tar.gz"
-
-# To verify your installations:
-wsl --list
-# To launch a specific instance use your IDE SWL plugin or:
-wsl -d [yourcustomenvname] # For Python development
-
-# Note: By default, the imported distribution will log you in as root. To set up a default user:
-# From inside the WSL instance
-NEW_USER=yourusername
-useradd -m -G sudo -s /bin/bash "$NEW_USER"
-passwd "$NEW_USER"
-# Still inside WSL
-echo -e "[user]\ndefault=$NEW_USER" > /etc/wsl.conf
-# Exit WSL and restart the instance:
-# In PowerShell
-wsl --terminate Ubuntu24-Root
-wsl -d Ubuntu24-Root  
 ```
