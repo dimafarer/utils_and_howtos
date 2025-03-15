@@ -1,25 +1,34 @@
-# Set up WSL user
-Note: By default, the imported distribution will log you in as root. since you created user when you installed the root wls that user still exists with thier password, (my username was wsluser). You should not use root should use the user you create 
+# WSL Setup
+
+## Set up WSL user
+
+Note: By default, the imported distribution will log you in as root. since you created user when you installed the root wls that user still exists with thier password, (my username was wsluser). You should not use root should use the user you create  
+
 ```bash
 su [username]  ex su wsluser
 sudo bash -c 'echo "[user] 
 default=wsluser" > /etc/wsl.conf'
 # Exit WSL and restart the instance
 ```
-# Install Q For Devlopers
+
+## Install Q For Devlopers
+
 * click extension
 * Do A search for Q in the search bar
 * click install
 * follow auth instructions for web authentication via your devloperID
 
-# Update OS
+## Update OS
+
 ```bash
 sudo apt update
 sudo apt upgrade -y
 sudo apt install -y curl unzip python3.12-venv
 # you make also need libkrb5-dev python3-dev
 ```
-# AWS CLI
+
+## AWS CLI
+
 ```bash
 mkdir ~/temp
 cd temp
@@ -33,7 +42,9 @@ aws configure
 # or 
 # get the AWS plugin and log in and login with your credentials
 ```
-# AWS SAM CLI
+
+## AWS SAM CLI
+
 ```bash
 # Create a temporary directory for the download
 mkdir -p ~/tmp/sam-install
@@ -55,8 +66,8 @@ cd ~
 rm -rf ~/tmp/sam-install
 ```
 
-```
-# Install Node
+## Install Node
+
 ```bash
 # use node version manager to install node
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -66,12 +77,15 @@ nvm install 20
 nvm use 20
 nvm alias default 20
 ```
-# Install Amplify CLI
+
+## Install Amplify CLI
+
 ```bash
 npm install -g @aws-amplify/cli@latest
 ```
 
-# Clone  Starter Project
+## Clone  Starter Project
+
 * go to https://docs.amplify.aws/react/start/quickstart/
 * click "create repository from template" to create an Amplify starter app git server repo in your account git service account 
 * once the repo has been created click "deploy to aws" which will lead you through the setup of a new Amplify project that will be driven by a CICD proccess triggered by updates to the git server repo ; (the one you created in the previous step)
@@ -83,17 +97,22 @@ mkdir projects
 cd projects
 git clone [git server repo url]
 ```
+
 * copy amplify_outputs.json to project root
+
 ```bash
 cd amplify-vite-react-template
 npm install
 ```
 
-# Create a dev sandbox and add delete functionality
+## Create a dev sandbox and add delete functionality
+
 ```bash
 npx ampx sandbox
 ```
-# wsl admin
+
+## wsl admin
+
 ```bash
 # wsl list 
 wsl --list --online
@@ -101,6 +120,7 @@ wsl --list
 #  wsl install
 wsl --install -d [distribution-name] | ex. wsl --install -d Ubuntu-24.04
 ```
+
 ```bash
 # to install a clean root version of Ubuntu24.04 to make local instances
 # 1. dowload the WSL version you want and then create the insteance from it before you modify it.
