@@ -118,7 +118,7 @@ nvm alias default 20
 npm install -g @aws-amplify/cli@latest
 ```
 
-## Clone  Starter Project
+### Clone  Starter Project
 
 * go to https://docs.amplify.aws/react/start/quickstart/
 * click "create repository from template" to create an Amplify starter app git server repo in your account git service account 
@@ -139,7 +139,7 @@ cd amplify-vite-react-template
 npm install
 ```
 
-## Create a dev sandbox and add delete functionality
+### Create a dev sandbox and add delete functionality
 
 ```bash
 npx ampx sandbox
