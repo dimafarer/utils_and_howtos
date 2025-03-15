@@ -16,7 +16,7 @@ to install a clean root version of Ubuntu24.04 to make local instances
 2. it will ask you to make a use as part of the instalation proccess.
 3. at this point your commandline are inside the new WSL instance (not your IDE). it will ask you to set up a user and password
 4. close the command line to go back to your system powershell
-5. Create a directory to store the download
+5. Create a directory to store the download  
 
 ```bash
 # make a folder to hold to the distribution. 
