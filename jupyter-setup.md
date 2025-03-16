@@ -1,5 +1,6 @@
 # jupyter notebook setup
 
+## Overview
 to run a jupyter noebook in vs code you need to
 
 + install jupyter notebook extension
@@ -10,6 +11,8 @@ to run a jupyter noebook in vs code you need to
 + restart vscode
 + open notebook, select kernal, sectct python env and sellect your venv
 
+## Commandline
+
 ```bash
 python -m venv [evnname]
 source [evnname]/bin/activate
@@ -18,10 +21,16 @@ pip install ipykernel
 python -m ipykernel install --user --name=[envname]_kernel --display-name "[envname]_kernel"
 # ex: python -m ipykernel install --user --name=python3.12_kernel --display-name "Python 3.12_kernel"
 ```
+## restart the window
 
-+ Create a new Jupyter notebook:
-  + You can do this by creating a new file with .ipynb extension
-  + Or use the Command Palette (Ctrl+Shift+P) and select "Create New Blank Jupyter Notebook"
++ open Command Palette (Ctrl+Shift+P)
++ type: *Reload Window*
+
+
+## Create a new Jupyter notebook:
+
++ You can do this by creating a new file with .ipynb extension
++ Or use the Command Palette (Ctrl+Shift+P) and select "Create New Blank Jupyter Notebook"
 + Select the kernel for your notebook:
   + Look for the "Select Kernel" button in the top right corner of your notebook
   + Choose your Python environment from the dropdown list
