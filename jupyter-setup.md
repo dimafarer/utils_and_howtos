@@ -40,3 +40,4 @@ python -m ipykernel install --user --name=[envname]_kernel --display-name "[envn
 ```bash
 print("Hello Jupyter!")
 ```
+python -m ipykernel install --user --name=venv01-l --display-name "venv01-l"
