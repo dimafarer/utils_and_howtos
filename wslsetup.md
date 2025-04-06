@@ -144,3 +144,56 @@ npm install
 ```bash
 npx ampx sandbox
 ```
+
+## Install Docker in WSL
+
+First, install Docker in WSL:
+
+```bash
+# Update package list
+sudo apt update
+
+# Install prerequisites
+sudo apt install apt-transport-https ca-certificates curl software-properties-common
+
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+# Add Docker repository
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+# Update package database
+sudo apt update
+
+# Install Docker
+sudo apt install docker-ce
+
+# Add your user to the docker group to run Docker without sudo:
+sudo usermod -aG docker $USER
+
+# Start Docker service:
+sudo service docker start
+
+# Verify the installation:
+docker --version
+docker ps
+
+# start
+sudo service docker start
+
+```
+
+If you permission ssues you may need to do the below each time you start docker in WSL
+```bash
+# test if docker is working
+docker ps
+
+# if not 
+sudo usermod -aG docker $USER
+sudo chown root:docker /var/run/docker.sock
+sudo chmod 666 /var/run/docker.sock
+
+# try testing again
+docker ps
+```
+
