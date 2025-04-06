@@ -57,8 +57,8 @@ wsl -d Ubuntu24-Root
 ```bash
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y curl unzip python3.12-venv
-# you make also need libkrb5-dev python3-dev
+sudo apt install -y curl unzip python3.12-venv gcc python3-dev libkrb5-dev
+# you make also need  
 ```
 
 ## AWS CLI
