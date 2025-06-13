@@ -1,0 +1,375 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for Gitea Git Server infrastructure'
+
+Parameters:
+  EnvironmentName:
+    Description: Environment name prefix for resources
+    Type: String
+    Default: gitea
+
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: String
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t3.small
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+    ConstraintDescription: Must be a valid EC2 instance type
+
+  VpcCIDR:
+    Description: CIDR block for the VPC
+    Type: String
+    Default: 10.0.0.0/16
+
+  PublicSubnetCIDR:
+    Description: CIDR block for the public subnet
+    Type: String
+    Default: 10.0.1.0/24
+
+  EBSVolumeSize:
+    Description: Size of the EBS volume for Gitea data in GB
+    Type: Number
+    Default: 20
+    MinValue: 8
+    MaxValue: 100
+
+  AllowSSHFrom:
+    Description: CIDR block for SSH access
+    Type: String
+    Default: 0.0.0.0/0
+    
+  AmazonLinuxAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+    Description: Amazon Linux 2 AMI ID
+
+Resources:
+  # VPC and Networking
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-igw
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PublicSubnetCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-public-subnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-public-route-table
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  # Security Groups
+  GiteaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Gitea server
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowSSHFrom
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 2222
+          ToPort: 2222
+          CidrIp: 0.0.0.0/0
+          Description: Git SSH access
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP access
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS access
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+          Description: Gitea web UI (if not using 80/443)
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-security-group
+
+  # EBS Volume for Gitea data
+  GiteaDataVolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !GetAtt PublicSubnet.AvailabilityZone
+      Size: !Ref EBSVolumeSize
+      VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-data-volume
+
+  # EC2 Instance
+  GiteaInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds:
+        - !Ref GiteaSecurityGroup
+      SubnetId: !Ref PublicSubnet
+      KeyName: !Ref KeyName
+      ImageId: !Ref AmazonLinuxAMI
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+            DeleteOnTermination: true
+      IamInstanceProfile: !Ref GiteaInstanceProfile
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-server
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash -xe
+          # Update system
+          yum update -y
+          
+          # Install required packages
+          amazon-linux-extras install docker -y
+          yum install -y amazon-cloudwatch-agent jq
+          
+          # Start Docker service
+          systemctl enable docker
+          systemctl start docker
+          
+          # Add ec2-user to docker group
+          usermod -a -G docker ec2-user
+          
+          # Install Docker Compose
+          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          
+          # Format and mount the EBS volume
+          mkdir -p /data
+          
+          # Wait for the EBS volume to be attached
+          while [ ! -e /dev/xvdf ]; do
+            echo "Waiting for EBS volume to be attached..."
+            sleep 5
+          done
+          
+          # Format the volume if it's not already formatted
+          if ! file -s /dev/xvdf | grep -q filesystem; then
+            mkfs -t ext4 /dev/xvdf
+          fi
+          
+          # Mount the volume
+          mount /dev/xvdf /data
+          
+          # Add to fstab for automatic mounting on reboot
+          echo '/dev/xvdf /data ext4 defaults,nofail 0 2' >> /etc/fstab
+          
+          # Create directory for Docker volumes
+          mkdir -p /data/docker-volumes
+          
+          # Create Gitea directory
+          mkdir -p /home/ec2-user/gitea
+          
+          # Get account ID for S3 bucket name
+          ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId)
+          
+          # Create docker-compose.yml file
+          cat > /home/ec2-user/gitea/docker-compose.yml << 'EOF'
+          version: '3'
+          
+          services:
+            gitea:
+              image: gitea/gitea:latest
+              container_name: gitea
+              environment:
+                - USER_UID=1000
+                - USER_GID=1000
+                - GITEA__server__DOMAIN=${DOMAIN}
+                - GITEA__server__ROOT_URL=https://${DOMAIN}/
+                - GITEA__server__SSH_DOMAIN=${DOMAIN}
+                - GITEA__server__SSH_PORT=2222
+              restart: always
+              volumes:
+                - /data/docker-volumes/gitea:/data
+                - /etc/timezone:/etc/timezone:ro
+                - /etc/localtime:/etc/localtime:ro
+              ports:
+                - "80:3000"
+                - "443:3000" 
+                - "2222:22"
+              networks:
+                - gitea
+          
+          networks:
+            gitea:
+              external: false
+          EOF
+          
+          # Create backup script
+          cat > /home/ec2-user/backup-gitea.sh << 'EOF'
+          #!/bin/bash
+          
+          # Set variables
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_DIR="/tmp/gitea-backup-${TIMESTAMP}"
+          ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId)
+          S3_BUCKET="s3://gitea-backups-${ACCOUNT_ID}"
+          
+          # Create temporary backup directory
+          mkdir -p $BACKUP_DIR
+          
+          # Stop Gitea container
+          cd /home/ec2-user/gitea
+          docker-compose stop gitea
+          
+          # Create backup archive
+          tar -czf "${BACKUP_DIR}/gitea-backup-${TIMESTAMP}.tar.gz" -C /data/docker-volumes gitea
+          
+          # Start Gitea container
+          docker-compose start gitea
+          
+          # Upload to S3
+          aws s3 cp "${BACKUP_DIR}/gitea-backup-${TIMESTAMP}.tar.gz" "${S3_BUCKET}/gitea-backup-${TIMESTAMP}.tar.gz"
+          
+          # Clean up
+          rm -rf $BACKUP_DIR
+          
+          echo "Backup completed and uploaded to ${S3_BUCKET}/gitea-backup-${TIMESTAMP}.tar.gz"
+          EOF
+          
+          # Make backup script executable
+          chmod +x /home/ec2-user/backup-gitea.sh
+          
+          # Set ownership
+          chown -R ec2-user:ec2-user /home/ec2-user/gitea
+          chown ec2-user:ec2-user /home/ec2-user/backup-gitea.sh
+          
+          # Start Gitea
+          cd /home/ec2-user/gitea
+          DOMAIN=$(curl -s http://169.254.169.254/latest/meta-data/public-hostname) docker-compose up -d
+          
+          # Add backup cron job
+          echo "0 2 * * * /home/ec2-user/backup-gitea.sh >> /home/ec2-user/backup-gitea.log 2>&1" | tee -a /var/spool/cron/ec2-user
+
+  # Volume Attachment
+  VolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/xvdf
+      InstanceId: !Ref GiteaInstance
+      VolumeId: !Ref GiteaDataVolume
+
+  # Elastic IP
+  GiteaEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-eip
+
+  GiteaEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt GiteaEIP.AllocationId
+      InstanceId: !Ref GiteaInstance
+
+  # S3 Bucket for Backups
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub gitea-backups-${AWS::AccountId}
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldBackups
+            Status: Enabled
+            ExpirationInDays: 30
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-backups
+
+  # IAM Role for EC2 to access S3
+  GiteaInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-instance-role
+
+  GiteaInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref GiteaInstanceRole
+
+Outputs:
+  GiteaURL:
+    Description: URL for Gitea server
+    Value: !Sub http://${GiteaInstance.PublicDnsName}
+
+  SSHCommand:
+    Description: SSH command to connect to the instance
+    Value: !Sub ssh -i ${KeyName}.pem ec2-user@${GiteaInstance.PublicDnsName}
+
+  BackupBucketName:
+    Description: S3 bucket for Gitea backups
+    Value: !Ref BackupBucket
