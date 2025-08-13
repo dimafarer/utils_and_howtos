@@ -2,6 +2,8 @@
 
 This project sets up a Gitea Git server on AWS using CloudFormation.
 
+**Note**: This repository contains deployment automation and documentation for [Gitea](https://gitea.io/), an open-source Git service. Gitea is developed by the Gitea community and is licensed under the MIT License. This repository does not contain or redistribute Gitea software itself - it uses the official Gitea Docker image from Docker Hub.
+
 ## Architecture Overview
 
 The CloudFormation template creates the following resources:
