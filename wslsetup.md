@@ -1,20 +1,71 @@
 # WSL Setup
 
-## wsl admin
+## What is wsl?
+
+wsl (Windows Subsystem for Linux) allows windows based developers to work in a linux environment. From Windows 10 (version 2004+) forword wsl is a pre-installed as a powershell command. After installation the
+
+```powershell
+wsl
+```
+
+command  with no flags will launch the default wsl linux instance. Before installation the **wsl** command by itself will cause and error.  
+before installation you may list wsl instances you can install.
+
+```powershell
+wsl --list --online
+```
+
+will show all your remote wsl linux options.
+you can also list your local options
+
+```powershell
+wsl --list 
+```
+
+its unlikly you will have any local options if you are installing wsl right now.
+
+## easy installation
+
+1. list you avalible instances
+
+```powershell
+wsl --list --online
+```
+
+2. run **wsl install** with one of the listed options. this one command will complete the full installation, including 
+- Enable all necessary Windows features
+- Install the WSL subsystem
+- Download and install Ubuntu 24.04
+- Set Ubuntu 24.04 as your default Linux distribution
+- including restarting the computer if nessarry.
+- it will automaticlly start wsl  
+ex:
+
+```powershell
+wsl --install -d Ubuntu-24.04
+```
+
+3. once installation is complete you will be on the bash command line. type
 
 ```bash
-# wsl list 
-wsl --list --online
-wsl --list
-#  wsl install
-wsl --install -d [distribution-name] | ex. wsl --install -d Ubuntu-24.04
+exit
 ```
+
+to return to powershell
+
+4. install the vscode wsl extention
+
+5. click the blue remote button at the bottom left of the ide
+
+6. choose "connect to wsl from the pop-up window to choose the default wsl instance you previously installed.
+
+## wsl instance clone
 
 to install a clean root version of Ubuntu24.04 to make local instances
 
 1. dowload the WSL version you want and then create the insteance from it before you modify it.
-2. it will ask you to make a use as part of the instalation proccess.
-3. at this point your commandline are inside the new WSL instance (not your IDE). it will ask you to set up a user and password
+2. it will ask you to make a user as part of the instalation proccess.
+3. at this point your commandline is inside the new WSL instance (not Windows). it will ask you to set up a user and password
 4. close the command line to go back to your system powershell
 5. Create a directory to store the download  
 
