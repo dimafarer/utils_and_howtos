@@ -33,6 +33,7 @@ from langchain_aws import ChatBedrock  # LangChain's wrapper for AWS Bedrock mod
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder  # For creating prompt templates with conversation history
 from langchain_community.chat_message_histories import ChatMessageHistory  # For storing conversation messages in memory
 from langchain_core.runnables.history import RunnableWithMessageHistory  # For adding memory capabilities to chains
+from langchain_core.messages import HumanMessage, AIMessage  # For manual memory management
 import sys
 
 def main():
@@ -130,25 +131,45 @@ def main():
         print("Bot: ", end="", flush=True)
         
         try:
-            # Store raw chunks for debug mode
-            raw_chunks = []
+            # Initialize variables for streaming
+            raw_chunks = [] if debug_mode else None
+            full_response = ""  # Collect full response for memory
             
-            # Stream the response from the AI
-            # This returns an iterator that yields chunks of the response
-            for chunk in conversational_chain.stream(
-                {"input": user_input},  # Send user's message
-                config={"configurable": {"session_id": session_id}}  # Include session for memory
-            ):
-                # Save raw chunk for debug display
+            # Get session history for manual memory management
+            session_history = get_session_history(session_id)
+            
+            # Add user message to memory
+            session_history.add_message(HumanMessage(content=user_input))
+            
+            # Stream the response from the AI using just the chain (not conversational_chain)
+            # We'll handle memory manually since streaming doesn't auto-save
+            for chunk in chain.stream({
+                "input": user_input,
+                "history": session_history.messages[:-1]  # All messages except the one we just added
+            }):
+                # Save raw chunk for debug display only if in debug mode
                 if debug_mode:
                     raw_chunks.append(str(chunk))
                 
                 # Extract text content from the streaming chunk
-                # LangChain returns AIMessageChunk objects with a .content attribute
                 if hasattr(chunk, 'content') and chunk.content:
-                    # Print each chunk immediately without newline
-                    # flush=True ensures it appears right away
-                    print(chunk.content, end="", flush=True)
+                    # Handle different chunk content formats
+                    content = chunk.content
+                    if isinstance(content, list) and len(content) > 0:
+                        # Extract text from list format: [{'type': 'text', 'text': 'Hello', 'index': 0}]
+                        for item in content:
+                            if isinstance(item, dict) and 'text' in item:
+                                text = item['text']
+                                print(text, end="", flush=True)
+                                full_response += text
+                    elif isinstance(content, str):
+                        # Handle simple string content
+                        print(content, end="", flush=True)
+                        full_response += content
+            
+            # Add AI response to memory
+            if full_response:
+                session_history.add_message(AIMessage(content=full_response))
             
             # Add newline after streaming is complete
             print("\n")
