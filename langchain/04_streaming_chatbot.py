@@ -34,7 +34,6 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder  # Fo
 from langchain_community.chat_message_histories import ChatMessageHistory  # For storing conversation messages in memory
 from langchain_core.runnables.history import RunnableWithMessageHistory  # For adding memory capabilities to chains
 from langchain_core.messages import HumanMessage, AIMessage  # For manual memory management
-import sys
 
 def main():
     # Check if user wants to see debug information (raw streaming chunks)
