@@ -137,14 +137,11 @@ def main():
             # Get session history for manual memory management
             session_history = get_session_history(session_id)
             
-            # Add user message to memory
-            session_history.add_message(HumanMessage(content=user_input))
-            
             # Stream the response from the AI using just the chain (not conversational_chain)
             # We'll handle memory manually since streaming doesn't auto-save
             for chunk in chain.stream({
                 "input": user_input,
-                "history": session_history.messages[:-1]  # All messages except the one we just added
+                "history": session_history.messages  # Use all existing messages
             }):
                 # Save raw chunk for debug display only if in debug mode
                 if debug_mode:
@@ -166,8 +163,9 @@ def main():
                         print(content, end="", flush=True)
                         full_response += content
             
-            # Add AI response to memory
+            # Add both user message and AI response to memory after streaming
             if full_response:
+                session_history.add_message(HumanMessage(content=user_input))
                 session_history.add_message(AIMessage(content=full_response))
             
             # Add newline after streaming is complete
